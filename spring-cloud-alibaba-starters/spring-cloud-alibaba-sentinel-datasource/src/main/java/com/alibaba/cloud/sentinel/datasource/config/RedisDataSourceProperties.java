@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018 the original author or authors.
+ * Copyright 2013-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,9 @@ package com.alibaba.cloud.sentinel.datasource.config;
 import java.time.Duration;
 import java.util.List;
 
+import com.alibaba.cloud.commons.lang.StringUtils;
 import com.alibaba.cloud.sentinel.datasource.factorybean.RedisDataSourceFactoryBean;
 
-import org.springframework.util.StringUtils;
 
 /**
  * Redis Properties class Using by {@link DataSourcePropertiesConfiguration} and
@@ -93,7 +93,7 @@ public class RedisDataSourceProperties extends AbstractDataSourceProperties {
 					"RedisDataSource  channel can not be empty");
 		}
 
-		if (!StringUtils.isEmpty(masterId) && StringUtils.isEmpty(masterId)) {
+		if (StringUtils.isEmpty(masterId)) {
 			throw new IllegalArgumentException(
 					"RedisDataSource  sentinel model，masterId can not be empty");
 		}

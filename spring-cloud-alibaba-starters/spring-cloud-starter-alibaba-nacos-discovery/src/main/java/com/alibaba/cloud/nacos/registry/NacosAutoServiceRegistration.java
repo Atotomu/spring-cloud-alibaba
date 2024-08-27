@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018 the original author or authors.
+ * Copyright 2013-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 package com.alibaba.cloud.nacos.registry;
 
+import com.alibaba.cloud.commons.lang.StringUtils;
+import com.alibaba.cloud.nacos.event.NacosDiscoveryInfoChangedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,8 +25,8 @@ import org.springframework.cloud.client.serviceregistry.AbstractAutoServiceRegis
 import org.springframework.cloud.client.serviceregistry.AutoServiceRegistrationProperties;
 import org.springframework.cloud.client.serviceregistry.Registration;
 import org.springframework.cloud.client.serviceregistry.ServiceRegistry;
+import org.springframework.context.event.EventListener;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 /**
  * @author xiaojing
@@ -100,6 +102,16 @@ public class NacosAutoServiceRegistration
 	protected String getAppName() {
 		String appName = registration.getNacosDiscoveryProperties().getService();
 		return StringUtils.isEmpty(appName) ? super.getAppName() : appName;
+	}
+
+	@EventListener
+	public void onNacosDiscoveryInfoChangedEvent(NacosDiscoveryInfoChangedEvent event) {
+		restart();
+	}
+
+	private void restart() {
+		this.stop();
+		this.start();
 	}
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018 the original author or authors.
+ * Copyright 2013-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@ package com.alibaba.cloud.nacos.discovery;
 
 import com.alibaba.cloud.nacos.ConditionalOnNacosDiscoveryEnabled;
 import com.alibaba.cloud.nacos.NacosDiscoveryProperties;
+import com.alibaba.cloud.nacos.NacosServiceManager;
 
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -31,11 +31,11 @@ import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.cloud.client.discovery.simple.SimpleDiscoveryClientAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.TaskScheduler;
 
 /**
  * @author xiaojing
  * @author echooymxq
+ * @author ruansheng
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnDiscoveryEnabled
@@ -52,13 +52,16 @@ public class NacosDiscoveryClientConfiguration {
 		return new NacosDiscoveryClient(nacosServiceDiscovery);
 	}
 
+	/**
+	 * NacosWatch is no longer enabled by default .
+	 * see https://github.com/alibaba/spring-cloud-alibaba/issues/2868
+	 */
 	@Bean
 	@ConditionalOnMissingBean
-	@ConditionalOnProperty(value = "spring.cloud.nacos.discovery.watch.enabled",
-			matchIfMissing = true)
-	public NacosWatch nacosWatch(NacosDiscoveryProperties nacosDiscoveryProperties,
-			ObjectProvider<TaskScheduler> taskScheduler) {
-		return new NacosWatch(nacosDiscoveryProperties, taskScheduler);
+	@ConditionalOnProperty(value = "spring.cloud.nacos.discovery.watch.enabled", matchIfMissing = false)
+	public NacosWatch nacosWatch(NacosServiceManager nacosServiceManager,
+			NacosDiscoveryProperties nacosDiscoveryProperties) {
+		return new NacosWatch(nacosServiceManager, nacosDiscoveryProperties);
 	}
 
 }

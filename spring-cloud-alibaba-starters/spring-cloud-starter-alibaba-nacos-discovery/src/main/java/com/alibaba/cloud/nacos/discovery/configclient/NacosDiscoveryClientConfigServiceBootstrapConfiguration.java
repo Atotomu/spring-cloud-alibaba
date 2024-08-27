@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018 the original author or authors.
+ * Copyright 2013-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,11 @@
 
 package com.alibaba.cloud.nacos.discovery.configclient;
 
+import com.alibaba.cloud.nacos.NacosServiceAutoConfiguration;
 import com.alibaba.cloud.nacos.discovery.NacosDiscoveryAutoConfiguration;
 import com.alibaba.cloud.nacos.discovery.NacosDiscoveryClientConfiguration;
 import com.alibaba.cloud.nacos.discovery.reactive.NacosReactiveDiscoveryClientConfiguration;
+import com.alibaba.cloud.nacos.util.UtilIPv6AutoConfiguration;
 
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -36,8 +38,8 @@ import org.springframework.context.annotation.Configuration;
 		matchIfMissing = false)
 @Configuration(proxyBeanMethods = false)
 @ImportAutoConfiguration({ NacosDiscoveryAutoConfiguration.class,
-		NacosDiscoveryClientConfiguration.class,
-		NacosReactiveDiscoveryClientConfiguration.class })
+		NacosServiceAutoConfiguration.class, NacosDiscoveryClientConfiguration.class,
+		NacosReactiveDiscoveryClientConfiguration.class, UtilIPv6AutoConfiguration.class })
 public class NacosDiscoveryClientConfigServiceBootstrapConfiguration {
 
 }

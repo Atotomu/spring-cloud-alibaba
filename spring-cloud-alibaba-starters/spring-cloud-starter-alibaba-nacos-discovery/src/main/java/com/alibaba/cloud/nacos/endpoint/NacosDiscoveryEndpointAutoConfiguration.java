@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018 the original author or authors.
+ * Copyright 2013-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,10 @@ package com.alibaba.cloud.nacos.endpoint;
 
 import com.alibaba.cloud.nacos.ConditionalOnNacosDiscoveryEnabled;
 import com.alibaba.cloud.nacos.NacosDiscoveryProperties;
+import com.alibaba.cloud.nacos.NacosServiceManager;
 import com.alibaba.cloud.nacos.discovery.actuate.health.NacosDiscoveryHealthIndicator;
 
-import org.springframework.boot.actuate.autoconfigure.endpoint.condition.ConditionalOnEnabledEndpoint;
+import org.springframework.boot.actuate.autoconfigure.endpoint.condition.ConditionalOnAvailableEndpoint;
 import org.springframework.boot.actuate.autoconfigure.health.ConditionalOnEnabledHealthIndicator;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.boot.actuate.health.HealthIndicator;
@@ -42,18 +43,17 @@ public class NacosDiscoveryEndpointAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	@ConditionalOnEnabledEndpoint
+	@ConditionalOnAvailableEndpoint
 	public NacosDiscoveryEndpoint nacosDiscoveryEndpoint(
+			NacosServiceManager nacosServiceManager,
 			NacosDiscoveryProperties nacosDiscoveryProperties) {
-		return new NacosDiscoveryEndpoint(nacosDiscoveryProperties);
+		return new NacosDiscoveryEndpoint(nacosServiceManager, nacosDiscoveryProperties);
 	}
 
 	@Bean
 	@ConditionalOnEnabledHealthIndicator("nacos-discovery")
-	public HealthIndicator nacosDiscoveryHealthIndicator(
-			NacosDiscoveryProperties nacosDiscoveryProperties) {
-		return new NacosDiscoveryHealthIndicator(
-				nacosDiscoveryProperties.namingServiceInstance());
+	public HealthIndicator nacosDiscoveryHealthIndicator(NacosServiceManager nacosServiceManager) {
+		return new NacosDiscoveryHealthIndicator(nacosServiceManager);
 	}
 
 }

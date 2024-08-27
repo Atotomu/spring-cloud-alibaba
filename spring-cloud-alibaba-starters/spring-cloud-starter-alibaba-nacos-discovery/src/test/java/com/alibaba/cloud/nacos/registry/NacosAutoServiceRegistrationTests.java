@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018 the original author or authors.
+ * Copyright 2013-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,45 +16,36 @@
 
 package com.alibaba.cloud.nacos.registry;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Properties;
 
 import com.alibaba.cloud.nacos.NacosDiscoveryProperties;
+import com.alibaba.cloud.nacos.NacosServiceManager;
 import com.alibaba.cloud.nacos.discovery.NacosDiscoveryClientConfiguration;
 import com.alibaba.cloud.nacos.endpoint.NacosDiscoveryEndpoint;
 import com.alibaba.nacos.api.NacosFactory;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.api.support.MethodProxy;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
-import org.powermock.modules.junit4.PowerMockRunnerDelegate;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.cloud.client.serviceregistry.AutoServiceRegistrationConfiguration;
 import org.springframework.cloud.commons.util.InetUtils;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 
 /**
  * @author xiaojing
  */
 
-@RunWith(PowerMockRunner.class)
-@PowerMockIgnore("javax.management.*")
-@PowerMockRunnerDelegate(SpringRunner.class)
-@PrepareForTest({ NacosFactory.class })
 @SpringBootTest(classes = NacosAutoServiceRegistrationTests.TestConfig.class,
 		properties = { "spring.application.name=myTestService1",
 				"spring.cloud.nacos.discovery.server-addr=127.0.0.1:8848",
@@ -68,9 +59,9 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 				"spring.cloud.nacos.discovery.accessKey=test-accessKey",
 				"spring.cloud.nacos.discovery.ip=8.8.8.8",
 				"spring.cloud.nacos.discovery.secretKey=test-secretKey",
-				"spring.cloud.nacos.discovery.heart-beat-interval=3",
-				"spring.cloud.nacos.discovery.heart-beat-timeout=6",
-				"spring.cloud.nacos.discovery.ip-delete-timeout=9" },
+				"spring.cloud.nacos.discovery.heart-beat-interval=3000",
+				"spring.cloud.nacos.discovery.heart-beat-timeout=6000",
+				"spring.cloud.nacos.discovery.ip-delete-timeout=9000" },
 		webEnvironment = RANDOM_PORT)
 public class NacosAutoServiceRegistrationTests {
 
@@ -87,22 +78,21 @@ public class NacosAutoServiceRegistrationTests {
 	private NacosDiscoveryProperties properties;
 
 	@Autowired
+	private NacosServiceManager nacosServiceManager;
+
+	@Autowired
 	private InetUtils inetUtils;
 
+	private static MockedStatic<NacosFactory> nacosFactoryMockedStatic;
 	static {
-		try {
-			Method method = PowerMockito.method(NacosFactory.class, "createNamingService",
-					Properties.class);
-			MethodProxy.proxy(method, new InvocationHandler() {
-				@Override
-				public Object invoke(Object proxy, Method method, Object[] args)
-						throws Throwable {
-					return new MockNamingService();
-				}
-			});
-		}
-		catch (Exception e) {
-			e.printStackTrace();
+		nacosFactoryMockedStatic = Mockito.mockStatic(NacosFactory.class);
+		nacosFactoryMockedStatic.when(() -> NacosFactory.createNamingService((Properties) any()))
+				.thenReturn(new MockNamingService());
+	}
+	@AfterAll
+	public static void finished() {
+		if (nacosFactoryMockedStatic != null) {
+			nacosFactoryMockedStatic.close();
 		}
 	}
 
@@ -182,15 +172,15 @@ public class NacosAutoServiceRegistrationTests {
 	}
 
 	private void checkoutNacosDiscoveryHeartBeatInterval() {
-		assertThat(properties.getHeartBeatInterval()).isEqualTo(Integer.valueOf(3));
+		assertThat(properties.getHeartBeatInterval()).isEqualTo(Integer.valueOf(3000));
 	}
 
 	private void checkoutNacosDiscoveryHeartBeatTimeout() {
-		assertThat(properties.getHeartBeatTimeout()).isEqualTo(Integer.valueOf(6));
+		assertThat(properties.getHeartBeatTimeout()).isEqualTo(Integer.valueOf(6000));
 	}
 
 	private void checkoutNacosDiscoveryIpDeleteTimeout() {
-		assertThat(properties.getIpDeleteTimeout()).isEqualTo(Integer.valueOf(9));
+		assertThat(properties.getIpDeleteTimeout()).isEqualTo(Integer.valueOf(9000));
 	}
 
 	private void checkoutNacosDiscoveryServiceName() {
@@ -207,7 +197,7 @@ public class NacosAutoServiceRegistrationTests {
 
 	private void checkoutEndpoint() throws Exception {
 		NacosDiscoveryEndpoint nacosDiscoveryEndpoint = new NacosDiscoveryEndpoint(
-				properties);
+				nacosServiceManager, properties);
 		Map<String, Object> map = nacosDiscoveryEndpoint.nacosDiscovery();
 
 		assertThat(properties).isEqualTo(map.get("NacosDiscoveryProperties"));

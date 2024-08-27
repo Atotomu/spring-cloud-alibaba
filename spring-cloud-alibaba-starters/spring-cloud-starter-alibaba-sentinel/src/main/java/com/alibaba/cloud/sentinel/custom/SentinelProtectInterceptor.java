@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018 the original author or authors.
+ * Copyright 2013-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -86,13 +86,23 @@ public class SentinelProtectInterceptor implements ClientHttpRequestInterceptor 
 				Tracer.trace(
 						new IllegalStateException("RestTemplate ErrorHandler has error"));
 			}
+			return response;
 		}
 		catch (Throwable e) {
-			if (!BlockException.isBlockException(e)) {
-				Tracer.trace(e);
+			if (BlockException.isBlockException(e)) {
+				return handleBlockException(request, body, execution, (BlockException) e);
 			}
 			else {
-				return handleBlockException(request, body, execution, (BlockException) e);
+				Tracer.traceEntry(e, hostEntry);
+				if (e instanceof IOException ioException) {
+					throw ioException;
+				}
+				else if (e instanceof RuntimeException runtimeException) {
+					throw runtimeException;
+				}
+				else {
+					throw new IOException(e);
+				}
 			}
 		}
 		finally {
@@ -103,7 +113,6 @@ public class SentinelProtectInterceptor implements ClientHttpRequestInterceptor 
 				hostEntry.exit();
 			}
 		}
-		return response;
 	}
 
 	private ClientHttpResponse handleBlockException(HttpRequest request, byte[] body,

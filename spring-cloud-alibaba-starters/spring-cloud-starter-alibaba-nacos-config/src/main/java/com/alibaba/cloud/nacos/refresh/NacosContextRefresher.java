@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018 the original author or authors.
+ * Copyright 2013-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@ import org.springframework.context.ApplicationListener;
  *
  * @author juven.xuxb
  * @author pbting
+ * @author freeman
  */
 public class NacosContextRefresher
 		implements ApplicationListener<ApplicationReadyEvent>, ApplicationContextAware {
@@ -53,14 +54,12 @@ public class NacosContextRefresher
 			.getLogger(NacosContextRefresher.class);
 
 	private static final AtomicLong REFRESH_COUNT = new AtomicLong(0);
-
-	private NacosConfigProperties nacosConfigProperties;
-
 	private final boolean isRefreshEnabled;
-
 	private final NacosRefreshHistory nacosRefreshHistory;
+	private NacosConfigProperties nacosConfigProperties;
+	private ConfigService configService;
 
-	private final ConfigService configService;
+	private NacosConfigManager configManager;
 
 	private ApplicationContext applicationContext;
 
@@ -70,25 +69,18 @@ public class NacosContextRefresher
 
 	public NacosContextRefresher(NacosConfigManager nacosConfigManager,
 			NacosRefreshHistory refreshHistory) {
+		this.configManager = nacosConfigManager;
 		this.nacosConfigProperties = nacosConfigManager.getNacosConfigProperties();
 		this.nacosRefreshHistory = refreshHistory;
-		this.configService = nacosConfigManager.getConfigService();
 		this.isRefreshEnabled = this.nacosConfigProperties.isRefreshEnabled();
 	}
 
-	/**
-	 * recommend to use
-	 * {@link NacosContextRefresher#NacosContextRefresher(NacosConfigManager, NacosRefreshHistory)}.
-	 * @param refreshProperties refreshProperties
-	 * @param refreshHistory refreshHistory
-	 * @param configService configService
-	 */
-	@Deprecated
-	public NacosContextRefresher(NacosRefreshProperties refreshProperties,
-			NacosRefreshHistory refreshHistory, ConfigService configService) {
-		this.isRefreshEnabled = refreshProperties.isEnabled();
-		this.nacosRefreshHistory = refreshHistory;
-		this.configService = configService;
+	public static long getRefreshCount() {
+		return REFRESH_COUNT.get();
+	}
+
+	public static void refreshCountIncrement() {
+		REFRESH_COUNT.incrementAndGet();
 	}
 
 	@Override
@@ -129,7 +121,8 @@ public class NacosContextRefresher
 							String configInfo) {
 						refreshCountIncrement();
 						nacosRefreshHistory.addRefreshRecord(dataId, group, configInfo);
-						// todo feature: support single refresh for listening
+						NacosSnapshotConfigManager.putConfigSnapshot(dataId, group,
+								configInfo);
 						applicationContext.publishEvent(
 								new RefreshEvent(this, null, "Refresh Nacos config"));
 						if (log.isDebugEnabled()) {
@@ -140,7 +133,12 @@ public class NacosContextRefresher
 					}
 				});
 		try {
+			if (configService == null && configManager != null) {
+				configService = configManager.getConfigService();
+			}
 			configService.addListener(dataKey, groupKey, listener);
+			log.info("[Nacos Config] Listening config: dataId={}, group={}", dataKey,
+					groupKey);
 		}
 		catch (NacosException e) {
 			log.warn(String.format(
@@ -168,14 +166,6 @@ public class NacosContextRefresher
 			return false;
 		}
 		return isRefreshEnabled;
-	}
-
-	public static long getRefreshCount() {
-		return REFRESH_COUNT.get();
-	}
-
-	public static void refreshCountIncrement() {
-		REFRESH_COUNT.incrementAndGet();
 	}
 
 }

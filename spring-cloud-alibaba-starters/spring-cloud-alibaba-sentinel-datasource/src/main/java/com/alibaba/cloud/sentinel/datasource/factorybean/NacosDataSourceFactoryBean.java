@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018 the original author or authors.
+ * Copyright 2013-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ package com.alibaba.cloud.sentinel.datasource.factorybean;
 
 import java.util.Properties;
 
+import com.alibaba.cloud.commons.lang.StringUtils;
 import com.alibaba.csp.sentinel.datasource.Converter;
 import com.alibaba.csp.sentinel.datasource.nacos.NacosDataSource;
 import com.alibaba.nacos.api.PropertyKeyConst;
 
 import org.springframework.beans.factory.FactoryBean;
-import org.springframework.util.StringUtils;
 
 /**
  * A {@link FactoryBean} for creating {@link NacosDataSource} instance.
@@ -34,6 +34,8 @@ import org.springframework.util.StringUtils;
 public class NacosDataSourceFactoryBean implements FactoryBean<NacosDataSource> {
 
 	private String serverAddr;
+
+	private String contextPath;
 
 	private String username;
 
@@ -60,15 +62,27 @@ public class NacosDataSourceFactoryBean implements FactoryBean<NacosDataSource> 
 			properties.setProperty(PropertyKeyConst.SERVER_ADDR, this.serverAddr);
 		}
 		else {
-			properties.setProperty(PropertyKeyConst.ACCESS_KEY, this.accessKey);
-			properties.setProperty(PropertyKeyConst.SECRET_KEY, this.secretKey);
 			properties.setProperty(PropertyKeyConst.ENDPOINT, this.endpoint);
+		}
+
+		if (!StringUtils.isEmpty(this.contextPath)) {
+			properties.setProperty(PropertyKeyConst.CONTEXT_PATH, this.contextPath);
+		}
+		if (!StringUtils.isEmpty(this.accessKey)) {
+			properties.setProperty(PropertyKeyConst.ACCESS_KEY, this.accessKey);
+		}
+		if (!StringUtils.isEmpty(this.secretKey)) {
+			properties.setProperty(PropertyKeyConst.SECRET_KEY, this.secretKey);
 		}
 		if (!StringUtils.isEmpty(this.namespace)) {
 			properties.setProperty(PropertyKeyConst.NAMESPACE, this.namespace);
 		}
-		properties.setProperty(PropertyKeyConst.USERNAME, this.username);
-		properties.setProperty(PropertyKeyConst.PASSWORD, this.password);
+		if (!StringUtils.isEmpty(this.username)) {
+			properties.setProperty(PropertyKeyConst.USERNAME, this.username);
+		}
+		if (!StringUtils.isEmpty(this.password)) {
+			properties.setProperty(PropertyKeyConst.PASSWORD, this.password);
+		}
 		return new NacosDataSource(properties, groupId, dataId, converter);
 	}
 
@@ -83,6 +97,14 @@ public class NacosDataSourceFactoryBean implements FactoryBean<NacosDataSource> 
 
 	public void setServerAddr(String serverAddr) {
 		this.serverAddr = serverAddr;
+	}
+
+	public String getContextPath() {
+		return contextPath;
+	}
+
+	public void setContextPath(String contextPath) {
+		this.contextPath = contextPath;
 	}
 
 	public String getUsername() {

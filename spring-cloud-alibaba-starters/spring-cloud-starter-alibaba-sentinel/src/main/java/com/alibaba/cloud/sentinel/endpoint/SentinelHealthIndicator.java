@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018 the original author or authors.
+ * Copyright 2013-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,9 @@ import com.alibaba.csp.sentinel.datasource.AbstractDataSource;
 import com.alibaba.csp.sentinel.heartbeat.HeartbeatSenderProvider;
 import com.alibaba.csp.sentinel.transport.HeartbeatSender;
 import com.alibaba.csp.sentinel.transport.config.TransportConfig;
-import com.alibaba.csp.sentinel.util.function.Tuple2;
+import com.alibaba.csp.sentinel.transport.endpoint.Endpoint;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.boot.actuate.health.AbstractHealthIndicator;
@@ -62,6 +64,8 @@ public class SentinelHealthIndicator extends AbstractHealthIndicator {
 
 	private SentinelProperties sentinelProperties;
 
+	private static final Logger logger = LoggerFactory.getLogger(SentinelHealthIndicator.class);
+
 	public SentinelHealthIndicator(DefaultListableBeanFactory beanFactory,
 			SentinelProperties sentinelProperties) {
 		this.beanFactory = beanFactory;
@@ -84,30 +88,39 @@ public class SentinelHealthIndicator extends AbstractHealthIndicator {
 
 		// Check health of Dashboard
 		boolean dashboardUp = true;
-		List<Tuple2<String, Integer>> consoleServerList = TransportConfig
-				.getConsoleServerList();
+		List<Endpoint> consoleServerList = TransportConfig.getConsoleServerList();
+		logger.info("Find sentinel dashboard server list: {}", consoleServerList);
 		if (CollectionUtils.isEmpty(consoleServerList)) {
 			// If Dashboard isn't configured, it's OK and mark the status of Dashboard
 			// with UNKNOWN.
 			detailMap.put("dashboard",
-					new Status(Status.UNKNOWN.getCode(), "dashboard isn't configured"));
+					new Status(
+							Status.UNKNOWN.getCode(),
+							"dashboard isn't configured"
+					)
+			);
 		}
 		else {
 			// If Dashboard is configured, send a heartbeat message to it and check the
-			// result
-			HeartbeatSender heartbeatSender = HeartbeatSenderProvider
-					.getHeartbeatSender();
+			HeartbeatSender heartbeatSender = HeartbeatSenderProvider.getHeartbeatSender();
+			// result is true if the heartbeat message is sent successfully
 			boolean result = heartbeatSender.sendHeartbeat();
 			if (result) {
 				detailMap.put("dashboard", Status.UP);
 			}
 			else {
+				logger.warn("Sentinel dashboard heartbeat message can't be sent to the dashboard servers {} one of them can't be connected",
+						consoleServerList);
 				// If failed to send heartbeat message, means that the Dashboard is DOWN
 				dashboardUp = false;
-				detailMap.put("dashboard",
-						new Status(Status.DOWN.getCode(), String.format(
+				detailMap.put("dashboard", new Status(
+						Status.UNKNOWN.getCode(),
+						String.format(
 								"the dashboard servers [%s] one of them can't be connected",
-								consoleServerList)));
+								consoleServerList
+						)
+					)
+				);
 			}
 		}
 
@@ -138,7 +151,7 @@ public class SentinelHealthIndicator extends AbstractHealthIndicator {
 				// DOWN
 				dataSourceUp = false;
 				dataSourceDetailMap.put(dataSourceBeanName,
-						new Status(Status.DOWN.getCode(), e.getMessage()));
+						new Status(Status.UNKNOWN.getCode(), e.getMessage()));
 			}
 		}
 
@@ -147,7 +160,7 @@ public class SentinelHealthIndicator extends AbstractHealthIndicator {
 			builder.up().withDetails(detailMap);
 		}
 		else {
-			builder.down().withDetails(detailMap);
+			builder.unknown().withDetails(detailMap);
 		}
 	}
 

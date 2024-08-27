@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018 the original author or authors.
+ * Copyright 2013-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package com.alibaba.cloud.nacos.discovery.actuate.health;
 
+import com.alibaba.cloud.nacos.NacosServiceManager;
 import com.alibaba.nacos.api.naming.NamingService;
 
 import org.springframework.boot.actuate.health.AbstractHealthIndicator;
@@ -31,8 +32,26 @@ import org.springframework.boot.actuate.health.HealthIndicator;
  */
 public class NacosDiscoveryHealthIndicator extends AbstractHealthIndicator {
 
-	private final NamingService namingService;
+	/**
+	 * status up.
+	 */
+	private static final String STATUS_UP = "UP";
 
+	/**
+	 * status down.
+	 */
+	private static final String STATUS_DOWN = "DOWN";
+
+	private NacosServiceManager nacosServiceManager;
+
+	@Deprecated
+	private NamingService namingService;
+
+	public NacosDiscoveryHealthIndicator(NacosServiceManager nacosServiceManager) {
+		this.nacosServiceManager = nacosServiceManager;
+	}
+
+	@Deprecated
 	public NacosDiscoveryHealthIndicator(NamingService namingService) {
 		this.namingService = namingService;
 	}
@@ -40,19 +59,13 @@ public class NacosDiscoveryHealthIndicator extends AbstractHealthIndicator {
 	@Override
 	protected void doHealthCheck(Health.Builder builder) throws Exception {
 		// Just return "UP" or "DOWN"
-		String status = namingService.getServerStatus();
+		String status = nacosServiceManager.getNamingService().getServerStatus();
 		// Set the status to Builder
 		builder.status(status);
 		switch (status) {
-		case "UP":
-			builder.up();
-			break;
-		case "DOWN":
-			builder.down();
-			break;
-		default:
-			builder.unknown();
-			break;
+		case STATUS_UP -> builder.up();
+		case STATUS_DOWN -> builder.down();
+		default -> builder.unknown();
 		}
 	}
 

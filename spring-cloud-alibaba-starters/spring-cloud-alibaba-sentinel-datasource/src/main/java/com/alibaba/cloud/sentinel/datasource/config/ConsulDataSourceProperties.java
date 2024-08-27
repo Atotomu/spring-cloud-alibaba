@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018 the original author or authors.
+ * Copyright 2013-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 package com.alibaba.cloud.sentinel.datasource.config;
 
+import com.alibaba.cloud.commons.lang.StringUtils;
 import com.alibaba.cloud.sentinel.datasource.factorybean.ConsulDataSourceFactoryBean;
 
-import org.springframework.util.StringUtils;
 
 /**
  * Consul Properties class Using by {@link DataSourcePropertiesConfiguration} and
@@ -28,71 +28,84 @@ import org.springframework.util.StringUtils;
  */
 public class ConsulDataSourceProperties extends AbstractDataSourceProperties {
 
-    public ConsulDataSourceProperties(){
-        super(ConsulDataSourceFactoryBean.class.getName());
-    }
+	public ConsulDataSourceProperties() {
+		super(ConsulDataSourceFactoryBean.class.getName());
+	}
 
-    /**
-     * consul server host.
-     */
-    private String host;
+	/**
+	 * consul server host.
+	 */
+	private String host;
 
-    /**
-     * consul server port.
-     */
-    private int port=8500;
+	/**
+	 * consul server port.
+	 */
+	private int port = 8500;
 
-    /**
-     * data key in Redis.
-     */
-    private String ruleKey;
+	/**
+	 * consul acl-token.
+	 */
 
-    /**
-     * Request of query will hang until timeout (in second) or get updated value.
-     */
-    private int waitTimeoutInSecond = 1;
+	private String token;
 
-    @Override
-    public void preCheck(String dataSourceName) {
-        if(StringUtils.isEmpty(host)){
-            throw new IllegalArgumentException(
-                    "ConsulDataSource server-host is empty");
-        }
-        if(StringUtils.isEmpty(ruleKey)){
-            throw new IllegalArgumentException(
-                    "ConsulDataSource ruleKey can not be empty");
-        }
-    }
+	/**
+	 * data key in Redis.
+	 */
+	private String ruleKey;
 
-    public String getHost() {
-        return host;
-    }
+	/**
+	 * Request of query will hang until timeout (in second) or get updated value.
+	 */
+	private int waitTimeoutInSecond = 1;
 
-    public void setHost(String host) {
-        this.host = host;
-    }
+	@Override
+	public void preCheck(String dataSourceName) {
+		if (StringUtils.isEmpty(host)) {
+			throw new IllegalArgumentException("ConsulDataSource server-host is empty");
+		}
+		if (StringUtils.isEmpty(ruleKey)) {
+			throw new IllegalArgumentException(
+					"ConsulDataSource ruleKey can not be empty");
+		}
+	}
 
-    public int getPort() {
-        return port;
-    }
+	public String getHost() {
+		return host;
+	}
 
-    public void setPort(int port) {
-        this.port = port;
-    }
+	public void setHost(String host) {
+		this.host = host;
+	}
 
-    public String getRuleKey() {
-        return ruleKey;
-    }
+	public int getPort() {
+		return port;
+	}
 
-    public void setRuleKey(String ruleKey) {
-        this.ruleKey = ruleKey;
-    }
+	public void setPort(int port) {
+		this.port = port;
+	}
 
-    public int getWaitTimeoutInSecond() {
-        return waitTimeoutInSecond;
-    }
+	public String getRuleKey() {
+		return ruleKey;
+	}
 
-    public void setWaitTimeoutInSecond(int waitTimeoutInSecond) {
-        this.waitTimeoutInSecond = waitTimeoutInSecond;
-    }
+	public void setRuleKey(String ruleKey) {
+		this.ruleKey = ruleKey;
+	}
+
+	public int getWaitTimeoutInSecond() {
+		return waitTimeoutInSecond;
+	}
+
+	public void setWaitTimeoutInSecond(int waitTimeoutInSecond) {
+		this.waitTimeoutInSecond = waitTimeoutInSecond;
+	}
+
+	public String getToken() {
+		return token;
+	}
+
+	public void setToken(String token) {
+		this.token = token;
+	}
 }

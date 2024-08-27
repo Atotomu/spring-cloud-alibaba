@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018 the original author or authors.
+ * Copyright 2013-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ package com.alibaba.cloud.sentinel;
 
 import java.util.Optional;
 
-import com.alibaba.csp.sentinel.adapter.spring.webmvc.SentinelWebInterceptor;
-import com.alibaba.csp.sentinel.adapter.spring.webmvc.callback.BlockExceptionHandler;
-import com.alibaba.csp.sentinel.adapter.spring.webmvc.callback.DefaultBlockExceptionHandler;
-import com.alibaba.csp.sentinel.adapter.spring.webmvc.callback.RequestOriginParser;
-import com.alibaba.csp.sentinel.adapter.spring.webmvc.callback.UrlCleaner;
-import com.alibaba.csp.sentinel.adapter.spring.webmvc.config.SentinelWebMvcConfig;
+import com.alibaba.csp.sentinel.adapter.spring.webmvc_v6x.SentinelWebInterceptor;
+import com.alibaba.csp.sentinel.adapter.spring.webmvc_v6x.callback.BlockExceptionHandler;
+import com.alibaba.csp.sentinel.adapter.spring.webmvc_v6x.callback.DefaultBlockExceptionHandler;
+import com.alibaba.csp.sentinel.adapter.spring.webmvc_v6x.callback.RequestOriginParser;
+import com.alibaba.csp.sentinel.adapter.spring.webmvc_v6x.config.SentinelWebMvcConfig;
+import com.alibaba.csp.sentinel.adapter.web.common.UrlCleaner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +36,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
@@ -65,23 +64,6 @@ public class SentinelWebAutoConfiguration implements WebMvcConfigurer {
 	@Autowired
 	private Optional<RequestOriginParser> requestOriginParserOptional;
 
-	@Autowired
-	private Optional<SentinelWebInterceptor> sentinelWebInterceptorOptional;
-
-	@Override
-	public void addInterceptors(InterceptorRegistry registry) {
-		if (!sentinelWebInterceptorOptional.isPresent()) {
-			return;
-		}
-		SentinelProperties.Filter filterConfig = properties.getFilter();
-		registry.addInterceptor(sentinelWebInterceptorOptional.get())
-				.order(filterConfig.getOrder())
-				.addPathPatterns(filterConfig.getUrlPatterns());
-		log.info(
-				"[Sentinel Starter] register SentinelWebInterceptor with urlPatterns: {}.",
-				filterConfig.getUrlPatterns());
-	}
-
 	@Bean
 	@ConditionalOnProperty(name = "spring.cloud.sentinel.filter.enabled",
 			matchIfMissing = true)
@@ -104,8 +86,10 @@ public class SentinelWebAutoConfiguration implements WebMvcConfigurer {
 		}
 		else {
 			if (StringUtils.hasText(properties.getBlockPage())) {
-				sentinelWebMvcConfig.setBlockExceptionHandler(((request, response,
-						e) -> response.sendRedirect(properties.getBlockPage())));
+				sentinelWebMvcConfig.setBlockExceptionHandler(
+						(request, response, resourceName, e) ->
+								response.sendRedirect(properties.getBlockPage())
+				);
 			}
 			else {
 				sentinelWebMvcConfig
@@ -116,6 +100,13 @@ public class SentinelWebAutoConfiguration implements WebMvcConfigurer {
 		urlCleanerOptional.ifPresent(sentinelWebMvcConfig::setUrlCleaner);
 		requestOriginParserOptional.ifPresent(sentinelWebMvcConfig::setOriginParser);
 		return sentinelWebMvcConfig;
+	}
+
+	@Bean
+	@ConditionalOnProperty(name = "spring.cloud.sentinel.filter.enabled",
+			matchIfMissing = true)
+	public SentinelWebMvcConfigurer sentinelWebMvcConfigurer() {
+		return new SentinelWebMvcConfigurer();
 	}
 
 }

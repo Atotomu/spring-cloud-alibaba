@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 the original author or authors.
+ * Copyright 2013-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,9 +23,8 @@ import java.util.List;
 import com.alibaba.csp.sentinel.slots.block.RuleConstant;
 import com.alibaba.csp.sentinel.slots.block.degrade.DegradeRule;
 import com.alibaba.csp.sentinel.slots.block.degrade.DegradeRuleManager;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -36,9 +35,8 @@ import org.springframework.cloud.client.circuitbreaker.Customizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Service;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,11 +45,9 @@ import static org.springframework.boot.test.context.SpringBootTest.WebEnvironmen
 /**
  * @author Eric Zhao
  */
-@RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = RANDOM_PORT,
 		classes = SentinelCircuitBreakerIntegrationTest.Application.class,
 		properties = { "spring.cloud.discovery.client.health-indicator.enabled=false" })
-@DirtiesContext
 public class SentinelCircuitBreakerIntegrationTest {
 
 	@Autowired
@@ -59,21 +55,24 @@ public class SentinelCircuitBreakerIntegrationTest {
 
 	@Test
 	public void testSlow() throws Exception {
-		// The first 5 requests should pass.
-		assertThat(service.slow()).isEqualTo("slow");
-		assertThat(service.slow()).isEqualTo("slow");
-		assertThat(service.slow()).isEqualTo("slow");
-		assertThat(service.slow()).isEqualTo("slow");
-		assertThat(service.slow()).isEqualTo("slow");
+		assertThat(service.slow(true)).isEqualTo("slow");
+		assertThat(service.slow(true)).isEqualTo("slow");
+		assertThat(service.slow(true)).isEqualTo("slow");
+		assertThat(service.slow(false)).isEqualTo("slow");
+		assertThat(service.slow(false)).isEqualTo("slow");
+		assertThat(service.slow(true)).isEqualTo("slow");
+		assertThat(service.slow(true)).isEqualTo("slow");
 
 		// Then in the next 10s, the fallback method should be called.
-		for (int i = 0; i < 10; i++) {
-			assertThat(service.slow()).isEqualTo("fallback");
+		for (int i = 0; i < 5; i++) {
+			assertThat(service.slow(true)).isEqualTo("fallback");
 			Thread.sleep(1000);
 		}
 
+		// Try a normal request.
+		assertThat(service.slow(false)).isEqualTo("slow");
 		// Recovered.
-		assertThat(service.slow()).isEqualTo("slow");
+		assertThat(service.slow(true)).isEqualTo("slow");
 	}
 
 	@Test
@@ -81,12 +80,12 @@ public class SentinelCircuitBreakerIntegrationTest {
 		assertThat(service.normal()).isEqualTo("normal");
 	}
 
-	@Before
+	@BeforeEach
 	public void setUp() {
 		DegradeRuleManager.loadRules(new ArrayList<>());
 	}
 
-	@Before
+	@BeforeEach
 	public void tearDown() {
 		DegradeRuleManager.loadRules(new ArrayList<>());
 	}
@@ -97,8 +96,11 @@ public class SentinelCircuitBreakerIntegrationTest {
 	protected static class Application {
 
 		@GetMapping("/slow")
-		public String slow() throws InterruptedException {
-			Thread.sleep(500);
+		public String slow(@RequestParam(required = false) Boolean slow)
+				throws InterruptedException {
+			if (slow == null || slow) {
+				Thread.sleep(80);
+			}
 			return "slow";
 		}
 
@@ -110,16 +112,17 @@ public class SentinelCircuitBreakerIntegrationTest {
 		@Bean
 		public Customizer<SentinelCircuitBreakerFactory> slowCustomizer() {
 			String slowId = "slow";
-			List<DegradeRule> rules = Collections.singletonList(
-					new DegradeRule(slowId).setGrade(RuleConstant.DEGRADE_GRADE_RT)
-							.setCount(100).setTimeWindow(10));
+			List<DegradeRule> rules = Collections.singletonList(new DegradeRule(slowId)
+					.setGrade(RuleConstant.DEGRADE_GRADE_RT).setCount(50)
+					.setSlowRatioThreshold(0.7).setMinRequestAmount(5)
+					.setStatIntervalMs(30000).setTimeWindow(5));
 			return factory -> {
 				factory.configure(builder -> builder.rules(rules), slowId);
 				factory.configureDefault(id -> new SentinelConfigBuilder()
 						.resourceName(id)
 						.rules(Collections.singletonList(new DegradeRule(id)
 								.setGrade(RuleConstant.DEGRADE_GRADE_EXCEPTION_COUNT)
-								.setCount(0.5).setTimeWindow(10)))
+								.setCount(10).setStatIntervalMs(10000).setTimeWindow(10)))
 						.build());
 			};
 		}
@@ -137,9 +140,10 @@ public class SentinelCircuitBreakerIntegrationTest {
 				this.cbFactory = cbFactory;
 			}
 
-			public String slow() {
+			public String slow(boolean slow) {
 				return cbFactory.create("slow").run(
-						() -> rest.getForObject("/slow", String.class), t -> "fallback");
+						() -> rest.getForObject("/slow?slow=" + slow, String.class),
+						t -> "fallback");
 			}
 
 			public String normal() {

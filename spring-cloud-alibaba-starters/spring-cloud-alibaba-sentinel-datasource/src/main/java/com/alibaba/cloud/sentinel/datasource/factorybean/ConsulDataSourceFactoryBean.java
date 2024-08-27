@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018 the original author or authors.
+ * Copyright 2013-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,68 +29,73 @@ import org.springframework.beans.factory.FactoryBean;
  */
 public class ConsulDataSourceFactoryBean implements FactoryBean<ConsulDataSource> {
 
-    private String    host;
+	private String host;
 
-    private int       port;
+	private int port;
 
-    private String    ruleKey;
+	private String ruleKey;
 
-    private int       waitTimeoutInSecond;
+	private String token;
 
-    private Converter converter;
+	private int waitTimeoutInSecond;
 
-    @Override
-    public ConsulDataSource getObject() throws Exception {
-        return new ConsulDataSource(
-                host,
-                port,
-                ruleKey,
-                waitTimeoutInSecond,
-                converter);
-    }
+	private Converter converter;
 
-    @Override
-    public Class<?> getObjectType() {
-        return ConsulDataSource.class;
-    }
+	@Override
+	public ConsulDataSource getObject() throws Exception {
+		return new ConsulDataSource(host, port, token, ruleKey, waitTimeoutInSecond, converter);
+	}
 
-    public String getHost() {
-        return host;
-    }
+	@Override
+	public Class<?> getObjectType() {
+		return ConsulDataSource.class;
+	}
 
-    public void setHost(String host) {
-        this.host = host;
-    }
+	public String getHost() {
+		return host;
+	}
 
-    public int getPort() {
-        return port;
-    }
+	public void setHost(String host) {
+		this.host = host;
+	}
 
-    public void setPort(int port) {
-        this.port = port;
-    }
+	public int getPort() {
+		return port;
+	}
 
-    public String getRuleKey() {
-        return ruleKey;
-    }
+	public void setPort(int port) {
+		this.port = port;
+	}
 
-    public void setRuleKey(String ruleKey) {
-        this.ruleKey = ruleKey;
-    }
+	public String getRuleKey() {
+		return ruleKey;
+	}
 
-    public int getWaitTimeoutInSecond() {
-        return waitTimeoutInSecond;
-    }
+	public void setRuleKey(String ruleKey) {
+		this.ruleKey = ruleKey;
+	}
 
-    public void setWaitTimeoutInSecond(int waitTimeoutInSecond) {
-        this.waitTimeoutInSecond = waitTimeoutInSecond;
-    }
+	public int getWaitTimeoutInSecond() {
+		return waitTimeoutInSecond;
+	}
 
-    public Converter getConverter() {
-        return converter;
-    }
+	public void setWaitTimeoutInSecond(int waitTimeoutInSecond) {
+		this.waitTimeoutInSecond = waitTimeoutInSecond;
+	}
 
-    public void setConverter(Converter converter) {
-        this.converter = converter;
-    }
+	public Converter getConverter() {
+		return converter;
+	}
+
+	public void setConverter(Converter converter) {
+		this.converter = converter;
+	}
+
+	public String getToken() {
+		return token;
+	}
+
+	public void setToken(String token) {
+		this.token = token;
+	}
 }

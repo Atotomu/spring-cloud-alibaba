@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2018 the original author or authors.
+ * Copyright 2013-2023 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package com.alibaba.cloud.sidecar.nacos;
 
 import com.alibaba.cloud.nacos.NacosDiscoveryProperties;
+import com.alibaba.cloud.nacos.NacosServiceManager;
 import com.alibaba.cloud.nacos.discovery.NacosDiscoveryAutoConfiguration;
 import com.alibaba.cloud.sidecar.SidecarAutoConfiguration;
 import com.alibaba.cloud.sidecar.SidecarDiscoveryClient;
@@ -49,8 +50,10 @@ public class SidecarNacosAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public SidecarDiscoveryClient sidecarDiscoveryClient(
+			NacosServiceManager nacosServiceManager,
 			SidecarNacosDiscoveryProperties sidecarNacosDiscoveryProperties) {
-		return new SidecarNacosDiscoveryClient(sidecarNacosDiscoveryProperties);
+		return new SidecarNacosDiscoveryClient(nacosServiceManager,
+				sidecarNacosDiscoveryProperties);
 	}
 
 }
